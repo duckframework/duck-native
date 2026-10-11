@@ -1,0 +1,77 @@
+# Build system.
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+# Project metadata.
+[project]
+name = "duck-native"
+dynamic = ["version", "dependencies"]
+description = "Build platform-specific native apps from Duck Framework web apps."
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.10"
+license = "BSD-3-Clause"
+license-files = ["LICENSE", "AUTHORS.md"]
+authors = [
+    { name = "Brian Musakwa", email = "digreatbrian@gmail.com" },
+]
+maintainers = [
+    { name = "Brian Musakwa", email = "digreatbrian@gmail.com" },
+]
+keywords = [
+    "duck",
+    "duck framework",
+    "duck-native",
+    "python",
+    "native",
+    "native-apps",
+    "android",
+    "webview",
+    "cross-platform",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+# Project links.
+[project.urls]
+Organization = "https://github.com/duckframework"
+Homepage = "https://duckframework.com"
+Contribution = "https://duckframework.com/contribute"
+Blog = "https://duckframework.com/blog"
+Documentation = "https://docs.duckframework.com"
+Source = "https://github.com/duckframework/duck-native"
+Issues = "https://github.com/duckframework/duck-native/issues"
+
+# Command line entry points.
+[project.scripts]
+duck-native = "duck_native.__main__:cli"
+
+# Dynamic metadata.
+[tool.setuptools.dynamic]
+version = { attr = "duck_native.__version__" }
+dependencies = { file = ["requirements.txt"] }
+
+# Package discovery.
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["duck_native*"]
+
+# Ship non-Python files (templates, Android shell assets, etc.).
+[tool.setuptools]
+include-package-data = true
+
