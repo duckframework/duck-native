@@ -3,6 +3,7 @@ Generates Android resources and the manifest overlay from a project config.
 """
 
 import shutil
+
 from pathlib import Path
 from xml.sax.saxutils import escape
 
@@ -88,11 +89,20 @@ def round_icon(square: Image.Image) -> Image.Image:
     # Draw the mask large, then shrink it for a smooth edge.
     big = square.width * Sizes.MASK_SCALE
     mask = Image.new("L", (big, big), 0)
+    
+    # Draw image
     ImageDraw.Draw(mask).ellipse((0, 0, big, big), fill=255)
+    
+    # Resize mask
     mask = mask.resize(square.size, Image.Resampling.LANCZOS)
-
+    
+    # Copy square
     rounded = square.copy()
+    
+    # Add mask
     rounded.putalpha(mask)
+    
+    # Return the image
     return rounded
 
 
@@ -105,12 +115,21 @@ def write_icons(icon: Path, res_dir: Path) -> None:
         res_dir: Generated res folder.
     """
     source = Image.open(icon).convert("RGBA")
+    
     for density, size in Sizes.LAUNCHER.items():
         folder = res_dir / f"mipmap-{density}"
         folder.mkdir(parents=True, exist_ok=True)
+        
+        # Log something
         console.log(f"Writing launcher icons to {folder}", level=console.DEBUG)
+        
+        # Create square
         square = square_icon(source, size)
+        
+        # Save icon
         square.save(folder / "ic_launcher.png")
+        
+        # Save rounded icon
         round_icon(square).save(folder / "ic_launcher_round.png")
 
 
@@ -136,11 +155,23 @@ def write_splash(config: ProjectConfig, res_dir: Path) -> None:
     
     if config.splash_image is not None:
         image = Image.open(config.splash_image).convert("RGBA")
+        
+        # Create thumbnail
         image.thumbnail((Sizes.SPLASH_MAX, Sizes.SPLASH_MAX), Image.Resampling.LANCZOS)
+        
+        # Generate target
         target = res_dir / "drawable-nodpi" / "duck_splash_image.png"
+        
+        # Make target dir
         target.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Log something
         console.log(f"Writing {target}", level=console.DEBUG)
+        
+        # Save image
         image.save(target)
+        
+        # Create image layer
         image_layer = (
             '    <item>\n        <bitmap android:src="@drawable/duck_splash_image"'
             ' android:gravity="center" />\n    </item>\n'
@@ -169,6 +200,7 @@ def write_manifest(config: ProjectConfig, output_dir: Path) -> None:
 
     # Application attributes only when they are set.
     application = ""
+    
     if config.icon is not None:
         application += (
             ' android:icon="@mipmap/ic_launcher"'
@@ -176,6 +208,7 @@ def write_manifest(config: ProjectConfig, output_dir: Path) -> None:
         )
 
     activity = ""
+    
     if config.orientation != "unspecified":
         activity = (
             '        <activity android:name="com.duckframework.bridge.MainActivity"'
@@ -202,7 +235,11 @@ def generate(config: ProjectConfig, output_dir: Path) -> None:
     """
     # Start clean so a removed ICON does not leave a stale icon behind.
     console.log("Cleaning old generated files", level=console.DEBUG)
+    
+    # Clean output directory
     shutil.rmtree(output_dir, ignore_errors=True)
+    
+    # Create resources dir
     res_dir = output_dir / "res"
 
     # Write each generated piece.

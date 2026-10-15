@@ -12,11 +12,13 @@ from typing import Optional
 
 from duck.logging import console
 
+from duck_native.actions import ActionError, install_actions
 from duck_native.hints import suggest
 from duck_native.config import ProjectConfig, escape_property
+from duck_native.storage import NATIVE_STORAGE
 
 
-TEMPLATE_DIR = Path(__file__).resolve().parent / "android" / "kotlin"
+TEMPLATE_DIR = NATIVE_STORAGE / "android" / "kotlin"
 
 
 class BuildError(Exception):
@@ -72,6 +74,7 @@ def find_aapt2() -> Optional[str]:
 
     if "com.termux" in os.environ.get("PREFIX", ""):
         return shutil.which("aapt2")
+        
     return None
 
 
@@ -92,7 +95,11 @@ def prepare_project(config: ProjectConfig, generated_dir: Path) -> Path:
 
     # Drop old sources so files removed from the template do not linger.
     console.log(f"Copying Android project to {target}", level=console.DEBUG)
+    
+    # Remove old data
     shutil.rmtree(target / "app" / "src", ignore_errors=True)
+    
+    # Copy template dir
     shutil.copytree(
         TEMPLATE_DIR,
         target,
@@ -100,12 +107,24 @@ def prepare_project(config: ProjectConfig, generated_dir: Path) -> Path:
         ignore=shutil.ignore_patterns(".gradle", "build", "local.properties", "gradle.properties"),
     )
 
+    # Add the project's own Kotlin actions.
+    try:
+        install_actions(config, target)
+    except ActionError as error:
+        raise BuildError(str(error)) from error
+
     # Template properties first, then this project's values.
     console.log("Writing Gradle properties", level=console.DEBUG)
+    
+    # Get props
     properties = config.gradle_values()
+    
+    # Edit generatedDir
     properties["duck.generatedDir"] = generated_dir.as_posix()
-
+    
+    # Find aapt2
     aapt2 = find_aapt2()
+    
     if aapt2:
         properties["android.aapt2FromMavenOverride"] = Path(aapt2).as_posix()
         console.log(f"Using aapt2 at {aapt2}", level=console.DEBUG)
@@ -113,6 +132,8 @@ def prepare_project(config: ProjectConfig, generated_dir: Path) -> Path:
     base = (TEMPLATE_DIR / "gradle.properties").read_text(encoding="utf-8").rstrip()
     lines = "\n".join(f"{key}={escape_property(value)}" for key, value in properties.items())
     (target / "gradle.properties").write_text(f"{base}\n\n{lines}\n", encoding="utf-8")
+    
+    # Return final target
     return target
 
 
@@ -131,12 +152,16 @@ def gradle_command(project_dir: Path, task: str) -> list[str]:
         BuildError: If neither a wrapper nor gradle is available.
     """
     wrapper = project_dir / ("gradlew.bat" if os.name == "nt" else "gradlew")
+    
     if wrapper.is_file():
         return [str(wrapper), task]
 
+    # Find gradle
     gradle = shutil.which("gradle")
+    
     if gradle is None:
         raise BuildError("Gradle was not found. Install Gradle 8.9 or newer and try again.")
+    
     return [gradle, task]
 
 
@@ -170,12 +195,17 @@ def copy_artifact(config: ProjectConfig, task: str) -> None:
         task: The Gradle task that ran.
     """
     artifact = find_artifact(config, task)
+    
     if artifact is None:
         console.log("Build finished but no APK or AAB was found.", level=console.WARNING)
         return
 
     target = config.build_dir / artifact.name
+    
+    # Log something
     console.log(f"Copying {artifact.name} to {target}", level=console.DEBUG)
+    
+    # Copy artifact
     shutil.copyfile(artifact, target)
 
     if "unsigned" in artifact.name:
@@ -184,6 +214,7 @@ def copy_artifact(config: ProjectConfig, task: str) -> None:
             "Set SIGNING_KEYSTORE and SIGNING_KEY_ALIAS in native/config.py.",
             level=console.WARNING,
         )
+        
     console.log(f"Built {artifact.suffix[1:].upper()}: {target}", level=console.SUCCESS)
 
 
@@ -219,6 +250,7 @@ def run_gradle(command: list[str], project_dir: Path) -> tuple[int, str]:
     for line in process.stdout:
         sys.stdout.write(line)
         lines.append(line)
+        
     return process.wait(), "".join(lines)
 
 
@@ -243,28 +275,49 @@ def build(config: ProjectConfig, apk: bool = False) -> int:
         raise BuildError("Pillow is required: pip install pillow") from error
 
     # Copy the Kotlin source first, then build from the copy.
-    console.log("Step 1/4: Preparing project", level=console.DEBUG)
+    # Log first step
+    console.log_raw("[ Step 1/4: Preparing project ]\n", level=console.DEBUG)
+    
+    # Build generated and project dirs
     generated_dir = config.build_dir / "generated"
     project_dir = prepare_project(config, generated_dir)
 
     # Generate the manifest overlay and resources.
-    console.log("Step 2/4: Generating resources", level=console.DEBUG)
+    console.log_raw("")
+    console.log_raw("[ Step 2/4: Generating resources ]\n", level=console.DEBUG)
+    
+    # Generate resources
     generate(config, generated_dir)
 
     # Run Gradle in the copied project.
     task = pick_task(config, apk)
     command = gradle_command(project_dir, task)
-    console.log(f"Step 3/4: Running {' '.join(command)}")
+    
+    # Log third step
+    console.log_raw("")
+    console.log_raw(f"[ Step 3/4: Running {' '.join(command)} ]\n", level=console.DEBUG)
+    
+    # Run gradle command
     code, output = run_gradle(command, project_dir)
 
     if code != 0:
-        console.log(f"Gradle failed with exit code {code}.", level=console.ERROR)
+        console.log_raw("")
+        console.log(f"Gradle failed with exit code {code}.\n", level=console.ERROR)
+        
+        # Get suggestions for failure
         hints = suggest(output) or ["Read the Gradle error above for the first line that says what went wrong."]
+        
         for hint in hints:
-            console.log(f"Suggestion: {hint}", level=console.WARNING)
+            console.log(f"Suggestion: {hint}\n", level=console.WARNING)
+        
         return code
 
     # Copy the result next to the other build files.
-    console.log("Step 4/4: Collecting output", level=console.DEBUG)
+    console.log_raw("")
+    console.log_raw("[ Step 4/4: Collecting output ]\n", level=console.DEBUG)
+    
+    # Copy artifact
     copy_artifact(config, task)
+    
+    # Return final code
     return code

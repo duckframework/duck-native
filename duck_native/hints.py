@@ -57,6 +57,7 @@ def suggest(output: str) -> list[str]:
         list[str]: Matching suggestions, empty when nothing is recognised.
     """
     text = output.lower()
+    
     return [
         hint
         for phrases, hint in RULES

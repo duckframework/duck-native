@@ -6,12 +6,12 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/duck-native?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/duck-native/)
 [![Python versions](https://img.shields.io/pypi/pyversions/duck-native?logo=python&logoColor=white)](https://pypi.org/project/duck-native/)
-[![License](https://img.shields.io/badge/license-BSD--3--Clause-green)](LICENSE)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-green)](https://github.com/duckframework/duck-native/blob/main/LICENSE)
 [![Status](https://img.shields.io/badge/status-beta-orange)](https://github.com/duckframework/duck-native)
 [![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)](https://github.com/duckframework/duck-native)
 [![GitHub stars](https://img.shields.io/github/stars/duckframework/duck-native?style=social)](https://github.com/duckframework/duck-native)
 
-[Website](https://duckframework.com) · [Documentation](https://docs.duckframework.com) · [Report a bug](https://github.com/duckframework/duck-native/issues)
+[Website](https://duckframework.com) · [Documentation](https://docs.duckframework.com) · [Native Actions](https://github.com/duckframework/duck-native/blob/main/readme/native-actions.md) · [Install Dependencies](https://github.com/duckframework/duck-native/blob/main/readme/dependencies-install-with-duck-toml.md) · [Termux Guide](https://github.com/duckframework/duck-native/blob/main/readme/termux-notes.md) · [Report a bug](https://github.com/duckframework/duck-native/issues)
 
 </div>
 
@@ -26,16 +26,25 @@ the Play Store like any other app.
 You do **not** need to write Kotlin or Java. You edit one Python file
 (`native/config.py`) and run one command.
 
+> 📚 **New here?** Read the guides:
+> [📱 Native Actions](https://github.com/duckframework/duck-native/blob/main/readme/native-actions.md)
+> (use the phone's features from your pages),
+> [📦 Installing Dependencies](https://github.com/duckframework/duck-native/blob/main/readme/dependencies-install-with-duck-toml.md)
+> (set up Gradle and Kotlin with `duck sync`) and
+> [🤖 Building on Termux](https://github.com/duckframework/duck-native/blob/main/readme/termux-notes.md)
+> (build apps right on your phone).
+
 ## 📋 Table of contents
 
 1. [What you need](#-what-you-need)
-2. [Install](#-install)
+2. [Install and Setup](#-install-and-setup)
 3. [Quick start](#-quick-start)
-4. [Commands](#-commands)
-5. [Settings](#%EF%B8%8F-settings)
-6. [Where is my app?](#-where-is-my-app)
-7. [Troubleshooting](#-troubleshooting)
-8. [Contributing](#-contributing)
+4. [Guides](#-guides)
+5. [Commands](#-commands)
+6. [Settings](#%EF%B8%8F-settings)
+7. [Where is my app?](#-where-is-my-app)
+8. [Troubleshooting](#-troubleshooting)
+9. [Contributing](#-contributing)
 
 ## ✅ What you need
 
@@ -49,12 +58,28 @@ You do **not** need to write Kotlin or Java. You edit one Python file
 
 > 💡 Just want to try your app on a phone quickly? Skip the last three rows and
 > use [`duck native apk`](#-get-a-ready-made-debug-apk).
+>
+> 📦 Need Gradle or Kotlin? Run `duck sync --with-dev`, see
+> [Installing Dependencies](https://github.com/duckframework/duck-native/blob/main/readme/dependencies-install-with-duck-toml.md).
+>
+> 🤖 Developing on a phone? Follow the
+> [Termux guide](https://github.com/duckframework/duck-native/blob/main/readme/termux-notes.md).
 
-## 📦 Install
+## 📦 Install and Setup
 
 ```bash
 pip install duck-native
 ```
+
+### Apply settings
+
+You must enable native in your settings file:
+
+```py
+NATIVE_ENABLED = True
+```
+
+The above line enable Native capabilities for your app and it requires `duck-native` to be installed.
 
 ## 🚀 Quick start
 
@@ -89,6 +114,14 @@ Copy `build/app-debug.apk` to your phone and open it, or plug your phone in and
 run `adb install -r build/app-debug.apk`.
 
 That's it! 🎉
+
+## 📚 Guides
+
+| Guide | What you will learn |
+| --- | --- |
+| [📱 Native Actions](https://github.com/duckframework/duck-native/blob/main/readme/native-actions.md) | Show toasts, vibrate, copy text and share from your pages, and write your own Kotlin actions. |
+| [📦 Installing Dependencies](https://github.com/duckframework/duck-native/blob/main/readme/dependencies-install-with-duck-toml.md) | Install Gradle, Kotlin and other system tools with one command, `duck sync`. |
+| [🤖 Building on Termux](https://github.com/duckframework/duck-native/blob/main/readme/termux-notes.md) | Set up the SDK, Java and `aapt2` to build apps on an Android phone. |
 
 ## 🧰 Commands
 
@@ -168,7 +201,7 @@ build/
 | --- | --- |
 | `Gradle was not found` | Install Gradle 8.9 or newer. |
 | `SDK location not found` | Set the `ANDROID_HOME` environment variable to your SDK folder. |
-| `failed to load include path ... android.jar` | Add `COMPILE_SDK = 34` to `native/config.py`. Common on Termux. |
+| `failed to load include path ... android.jar` | Add `COMPILE_SDK = 34` to `native/config.py`. Common on Termux, see the [Termux guide](https://github.com/duckframework/duck-native/blob/main/readme/termux-notes.md). |
 | `Failed to install the following Android SDK packages` | Run `sdkmanager --licenses` and accept everything. |
 | `Pillow is required` | Run `pip install pillow`. |
 | Release APK says `unsigned` | Set `SIGNING_KEYSTORE` and `SIGNING_KEY_ALIAS`, plus the `DUCK_KEYSTORE_PASSWORD` and `DUCK_KEY_PASSWORD` environment variables. |
@@ -183,4 +216,5 @@ Contributions are welcome! See the
 
 ## 📄 License
 
-Released under the [BSD 3-Clause License](LICENSE).
+Released under the [BSD 3-Clause License](https://github.com/duckframework/duck-native/blob/main/LICENSE).
+

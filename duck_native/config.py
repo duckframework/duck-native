@@ -135,6 +135,7 @@ class ProjectConfig:
         java_version: Java language level for Java and Kotlin.
         signing_keystore: Keystore used to sign release builds, if any.
         signing_key_alias: Key alias inside the keystore, if any.
+        project_dir: Folder that contains the project's native/ directory.
     """
 
     app_name: str
@@ -158,6 +159,7 @@ class ProjectConfig:
     java_version: int
     signing_keystore: Optional[Path]
     signing_key_alias: Optional[str]
+    project_dir: Path
 
     @classmethod
     def from_values(
@@ -195,7 +197,7 @@ class ProjectConfig:
         fields["orientation"] = fields["orientation"].lower()
         
         # Return the final config
-        return cls(**fields)
+        return cls(project_dir=project_dir, **fields)
 
     def validate(self) -> list[str]:
         """
@@ -514,16 +516,17 @@ def read_settings(module: ModuleType) -> tuple[dict[str, Any], list[str]]:
     return values, errors
 
 
-def load_config(project_dir: Path) -> ProjectConfig:
+def load_config(project_dir: Path, ignore_errors: bool = False) -> ProjectConfig:
     """
     Load, normalize and validate a project's native/config.py.
 
     Args:
         project_dir: Folder that contains the project's native/ directory.
-
+        ignore_errors: Ignore config errors e.g., validation isssues.
+        
     Returns:
         ProjectConfig: The validated settings.
-
+        
     Raises:
         ConfigError: If the file is missing, fails to run, or has any problem.
     """
@@ -533,14 +536,14 @@ def load_config(project_dir: Path) -> ProjectConfig:
     # Run the user's file and read its settings.
     values, errors = read_settings(load_module(path))
     
-    if errors:
+    if errors and not ignore_errors:
         raise ConfigError(path, errors)
 
     # Resolve paths and permissions, then check the result.
     config = ProjectConfig.from_values(values, project_dir)
     errors = config.validate()
     
-    if errors:
+    if errors and not ignore_errors:
         raise ConfigError(path, errors)
     
     # Return final config

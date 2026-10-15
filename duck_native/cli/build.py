@@ -28,8 +28,11 @@ def build(project: Path, apk: bool) -> None:
         click.exceptions.Exit: With Gradle's exit code when the build fails.
     """
     config = load_project(project)
-    console.log(f"Building {config.app_name} ({config.package_name})")
-
+    console.log(f"Building {config.app_name} ({config.package_name})\n")
+    
+    if apk and config.debug:
+        console.log("Building release APK ignored, config's DEBUG=True\n", level=console.WARNING)
+        
     # Generate resources and run Gradle.
     try:
         code = builder.build(config, apk=apk)

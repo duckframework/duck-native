@@ -17,13 +17,14 @@ project_argument = click.argument(
 )
 
 
-def load_project(project: Path) -> ProjectConfig:
+def load_project(project: Path, ignore_errors: bool = False) -> ProjectConfig:
     """
     Load a project's config, reporting problems the way click expects.
 
     Args:
         project: Folder that contains the project's native/ directory.
-
+        ignore_errors: Whether to ignore errors e.g., validation issues.
+        
     Returns:
         ProjectConfig: The validated settings.
 
@@ -31,7 +32,7 @@ def load_project(project: Path) -> ProjectConfig:
         click.ClickException: If the config is missing or invalid.
     """
     try:
-        config = load_config(project)
+        config = load_config(project, ignore_errors=ignore_errors)
         
     except ConfigError as error:
         raise click.ClickException(str(error)) from error

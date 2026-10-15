@@ -70,6 +70,9 @@ class NativeActionRegistry {
                 registry.register("debug.delay", DebugDelayAction())
             }
 
+            // Actions from the project's native/actions folder
+            registerCustomActions(registry)
+
             return registry
         }
     }
