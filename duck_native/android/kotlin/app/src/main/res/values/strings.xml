@@ -2,14 +2,12 @@
 <resources>
     <string name="app_name">Duck Native Bridge</string>
 
-    <!-- Connect screen -->
-    <string name="connecting_title">Connecting…</string>
-    <string name="connecting_message">Reaching %1$s</string>
-    <string name="reloading_title">Reloading…</string>
-    <string name="reloading_message">The page stopped unexpectedly. Restoring it now.</string>
+    <!-- Launch and error screens -->
+    <string name="loading">Loading</string>
     <string name="server_label">Server address</string>
     <string name="server_hint">http://localhost:8000/</string>
     <string name="connect">Connect</string>
+    <string name="close">Close</string>
     <string name="try_again">Try again</string>
     <string name="open_tests">Open bridge test page</string>
     <string name="trust_notice">Only connect to servers you trust. They can use this app\'s native features.</string>
@@ -19,19 +17,19 @@
     <string name="error_cleartext_url">Plain http:// only works for localhost. Use https:// for other servers.</string>
 
     <!-- Load problems -->
-    <string name="error_offline_title">You\'re offline</string>
+    <string name="error_offline_title">No internet connection</string>
     <string name="error_offline_message">Check your Wi-Fi or mobile data, then try again.</string>
-    <string name="error_dns_title">Server not found</string>
-    <string name="error_dns_message">Check the address for typos, then try again.</string>
-    <string name="error_connect_title">Can\'t reach the server</string>
-    <string name="error_connect_message">Nothing answered at this address. Make sure the server is running and reachable.</string>
+    <string name="error_dns_title">Can\'t connect right now</string>
+    <string name="error_dns_message">We couldn\'t find the service. Check your connection and try again.</string>
+    <string name="error_connect_title">Can\'t connect right now</string>
+    <string name="error_connect_message">We couldn\'t reach the service. Please try again in a moment.</string>
     <string name="error_connect_local_hint">Server on a computer? Forward its port with:\nadb reverse tcp:%1$d tcp:%1$d</string>
-    <string name="error_timeout_title">Server took too long</string>
-    <string name="error_timeout_message">The server did not respond in time. Check your connection, then try again.</string>
-    <string name="error_ssl_title">Secure connection failed</string>
-    <string name="error_ssl_message">The server\'s certificate could not be verified, so the connection was blocked.</string>
-    <string name="error_renderer_title">The page keeps crashing</string>
-    <string name="error_renderer_message">The page stopped unexpectedly several times. Try again, or restart the app if this keeps happening.</string>
-    <string name="error_generic_title">Couldn\'t load the page</string>
-    <string name="error_generic_message">Something went wrong while loading. Try again.</string>
+    <string name="error_timeout_title">Taking longer than usual</string>
+    <string name="error_timeout_message">Your connection seems slow. Please try again.</string>
+    <string name="error_ssl_title">Connection not secure</string>
+    <string name="error_ssl_message">We couldn\'t make a secure connection, so we stopped. Please try again later.</string>
+    <string name="error_renderer_title">Something went wrong</string>
+    <string name="error_renderer_message">The app stopped unexpectedly. Please try again.</string>
+    <string name="error_generic_title">Something went wrong</string>
+    <string name="error_generic_message">We couldn\'t load the app. Please try again.</string>
 </resources>

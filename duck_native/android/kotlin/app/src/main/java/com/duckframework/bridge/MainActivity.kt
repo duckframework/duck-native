@@ -40,13 +40,16 @@ class MainActivity : Activity(), ConnectView.Listener {
     private lateinit var permissionRequester: PermissionRequester
     private lateinit var networkMonitor: NetworkMonitor
 
-    private val bootstrapScript by lazy { readAsset(BOOTSTRAP_ASSET) }
+    private val bootstrapScript by lazy {
+        readAsset(BOOTSTRAP_ASSET) + "\n" + readAsset(WIDGETS_ASSET)
+    }
     private val handler = Handler(Looper.getMainLooper())
     private val crashTimes = ArrayDeque<Long>()
 
     private var debuggable = false
     private var webView: WebView? = null
     private var channel: PageChannel? = null
+    private var widgets: WidgetManager? = null
 
     // The server whose pages may use the native API
     private var server = ServerUrl.DEFAULT
@@ -60,24 +63,56 @@ class MainActivity : Activity(), ConnectView.Listener {
             showFailure(LoadFailure.TIMEOUT)
         }
     }
+    
+    private var readyAttempts = 0
+
+    // Polls until the page has real content, then reveals it once it has painted
+    private val readyCheck = object : Runnable {
+        override fun run() {
+            val view = webView ?: return
+            view.evaluateJavascript(READY_SCRIPT) { result ->
+                if (state != State.CONNECTED) return@evaluateJavascript
+                val ready = result == "true" || ++readyAttempts >= MAX_READY_CHECKS
+                if (!ready) {
+                    handler.postDelayed(this, READY_POLL_MS)
+                    return@evaluateJavascript
+                }
+                view.postVisualStateCallback(0L, object : WebView.VisualStateCallback() {
+                    override fun onComplete(requestId: Long) {
+                        if (state == State.CONNECTED) connectView.hide()
+                    }
+                })
+            }
+        }
+    }
 
     private val pageListener = object : PageListener {
         override fun onPageLoaded(url: String?) {
             if (state != State.CONNECTING) return
+            
+            // Remove callbacks
             handler.removeCallbacks(timeout)
+            
+            // Assign state
             state = State.CONNECTED
 
             // Remember typed servers, but never the built-in test page
             if (config.canChangeServer && server != BridgePage.URL) {
                 store.lastUrl = server
             }
-            connectView.hide()
+            
+            // Keep the splash up until the page has actually drawn something
+            readyAttempts = 0
+            handler.post(readyCheck)
         }
 
         override fun onLoadFailed(url: String?, failure: LoadFailure) {
             if (state == State.ERROR) return
+            
             errorMidSession = state == State.CONNECTED
             failedUrl = url
+            
+            // Reveal failure
             showFailure(failure)
         }
 
@@ -103,6 +138,7 @@ class MainActivity : Activity(), ConnectView.Listener {
         webContainer = findViewById(R.id.web_container)
         connectView = ConnectView(
             root = findViewById(R.id.connect_root),
+            splash = findViewById(R.id.splash_root),
             listener = this,
             showTests = debuggable && config.canChangeServer,
         )
@@ -156,6 +192,7 @@ class MainActivity : Activity(), ConnectView.Listener {
 
     override fun onDestroy() {
         handler.removeCallbacks(timeout)
+        handler.removeCallbacks(readyCheck)
         detachWebView()
         super.onDestroy()
     }
@@ -202,31 +239,17 @@ class MainActivity : Activity(), ConnectView.Listener {
      *
      * @param url Page to load.
      * @param newServer Server to trust from now on; unchanged by default.
-     * @param reloading True when restoring a page after a renderer failure.
      */
-    private fun connect(
-        url: String,
-        newServer: String = server,
-        reloading: Boolean = false,
-    ) {
+    private fun connect(url: String, newServer: String = server) {
         server = newServer
         failedUrl = null
         trust.setTrusted(trustedUrlsFor(server))
 
         // Show progress and start the clock
         state = State.CONNECTING
-        if (reloading) {
-            connectView.showConnecting(
-                getString(R.string.reloading_title),
-                getString(R.string.reloading_message),
-            )
-        } else {
-            connectView.showConnecting(
-                getString(R.string.connecting_title),
-                getString(R.string.connecting_message, url),
-            )
-        }
+        connectView.showConnecting()
         handler.removeCallbacks(timeout)
+        handler.removeCallbacks(readyCheck)
         handler.postDelayed(timeout, CONNECT_TIMEOUT_MS)
 
         // Load the page, creating a WebView if the last one was discarded
@@ -237,12 +260,14 @@ class MainActivity : Activity(), ConnectView.Listener {
 
     private fun showFailure(failure: LoadFailure) {
         handler.removeCallbacks(timeout)
+        handler.removeCallbacks(readyCheck)
         state = State.ERROR
         val error = ConnectionErrors.describe(
             context = this,
             failure = failure,
             url = failedUrl ?: server,
             offline = !networkMonitor.isOnline(),
+            developer = debuggable,
         )
         connectView.showError(error, config.canChangeServer, server)
     }
@@ -272,7 +297,7 @@ class MainActivity : Activity(), ConnectView.Listener {
         }
 
         // Otherwise reload behind the progress screen; connect() builds a new WebView
-        connect(resumeUrl, reloading = true)
+        connect(resumeUrl)
     }
 
     private fun attachWebView(): WebView {
@@ -281,10 +306,12 @@ class MainActivity : Activity(), ConnectView.Listener {
 
         // Wire the bridge; it is the only object JavaScript can reach
         val newChannel = PageChannel(view, trust)
+        val host = NativeHost(this, permissionRequester)
+        val newWidgets = WidgetManager(host, webContainer, newChannel, NativeWidgetRegistry.createDefault())
         val bridge = DuckNativeBridge(
             webView = view,
-            host = NativeHost(this, permissionRequester),
-            registry = NativeActionRegistry.createDefault(debuggable),
+            host = host,
+            registry = NativeActionRegistry.createDefault(debuggable, newWidgets),
             trust = trust,
             channel = newChannel,
         )
@@ -306,10 +333,13 @@ class MainActivity : Activity(), ConnectView.Listener {
         )
         webView = view
         channel = newChannel
+        widgets = newWidgets
         return view
     }
 
     private fun detachWebView() {
+        widgets?.release()
+        widgets = null
         channel?.close()
         webView?.let { view ->
             webContainer.removeView(view)
@@ -399,9 +429,19 @@ class MainActivity : Activity(), ConnectView.Listener {
     companion object {
         const val BRIDGE_NAME = "AndroidDuckBridge"
         const val BOOTSTRAP_ASSET = "duck-native.js"
+        const val WIDGETS_ASSET = "duck-widgets.js"
 
         private const val CONNECT_TIMEOUT_MS = 15_000L
         private const val CRASH_WINDOW_MS = 60_000L
         private const val MAX_CRASHES = 3
+        
+        private const val READY_POLL_MS = 100L
+        private const val MAX_READY_CHECKS = 50
+        
+        // True once the document has loaded and its body holds visible content
+        private const val READY_SCRIPT = "(function(){var b=document.body;" +
+            "return document.readyState==='complete'&&!!b&&" +
+            "Array.prototype.some.call(b.children,function(e){" +
+            "return e.tagName!=='SCRIPT'&&e.tagName!=='STYLE';});})()"
     }
 }

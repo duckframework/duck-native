@@ -28,6 +28,45 @@ class Sizes:
     MASK_SCALE = 4
 
 
+class Splash:
+    """
+    Values used to keep the splash progress bar visible on any background.
+
+    Attributes:
+        LIGHT_THRESHOLD: Brightness (0-255) above which a background is light.
+        ON_LIGHT: Progress colour used on light backgrounds.
+        ON_DARK: Progress colour used on dark backgrounds.
+        RED_WEIGHT: Contribution of red to perceived brightness.
+        GREEN_WEIGHT: Contribution of green to perceived brightness.
+        BLUE_WEIGHT: Contribution of blue to perceived brightness.
+    """
+
+    LIGHT_THRESHOLD = 140
+    ON_LIGHT = "#CC000000"
+    ON_DARK = "#CCFFFFFF"
+    RED_WEIGHT = 0.299
+    GREEN_WEIGHT = 0.587
+    BLUE_WEIGHT = 0.114
+
+
+def progress_color(background: str) -> str:
+    """
+    Pick a progress bar colour that contrasts with the splash background.
+
+    Args:
+        background: Splash colour as #RRGGBB or #AARRGGBB.
+
+    Returns:
+        str: Dark colour for light backgrounds, light colour for dark ones.
+    """
+    digits = background[-6:]
+    red, green, blue = (int(digits[index:index + 2], 16) for index in (0, 2, 4))
+    brightness = (
+        red * Splash.RED_WEIGHT + green * Splash.GREEN_WEIGHT + blue * Splash.BLUE_WEIGHT
+    )
+    return Splash.ON_LIGHT if brightness > Splash.LIGHT_THRESHOLD else Splash.ON_DARK
+    
+
 def android_string(value: str) -> str:
     """
     Escape text for an Android string resource.
@@ -147,6 +186,7 @@ def write_splash(config: ProjectConfig, res_dir: Path) -> None:
         "<resources>\n"
         f'    <string name="app_name">{android_string(config.app_name)}</string>\n'
         f'    <color name="duck_splash_color">{config.splash_background}</color>\n'
+        f'    <color name="duck_splash_progress">{progress_color(config.splash_background)}</color>\n'
         "</resources>\n",
     )
 

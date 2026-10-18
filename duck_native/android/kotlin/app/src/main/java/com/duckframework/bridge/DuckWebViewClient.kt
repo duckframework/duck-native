@@ -92,7 +92,13 @@ class DuckWebViewClient(
     }
 
     override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
-        // Never proceed past a certificate problem
+        // Only builds that opt in may accept a bad certificate, and only from trusted servers
+        if (BuildConfig.ALLOW_INSECURE_CERTS && trust.isTrusted(error.url)) {
+            handler.proceed()
+            return
+        }
+
+        // Otherwise never proceed past a certificate problem
         handler.cancel()
 
         // Subresource errors are cancelled quietly; only the page itself is reported

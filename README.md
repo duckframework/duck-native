@@ -1,6 +1,6 @@
 <div align="center">
 
-# Duck Native
+![Duck Native Wordmark](https://cdn.jsdelivr.net/gh/duckframework/duck-native@main/assets/images/duck-native-wordmark.svg)
 
 **Turn your Duck Framework web app into a real Android app.**
 
@@ -29,10 +29,13 @@ You do **not** need to write Kotlin or Java. You edit one Python file
 > 📚 **New here?** Read the guides:
 > [📱 Native Actions](https://github.com/duckframework/duck-native/blob/main/readme/native-actions.md)
 > (use the phone's features from your pages),
+> [🧩 Native Widgets](https://github.com/duckframework/duck-native/blob/main/readme/native-widgets.md)
+> (use real Android widgets from Python, like a date picker or bottom sheet),
 > [📦 Installing Dependencies](https://github.com/duckframework/duck-native/blob/main/readme/dependencies-install-with-duck-toml.md)
 > (set up Gradle and Kotlin with `duck sync`) and
 > [🤖 Building on Termux](https://github.com/duckframework/duck-native/blob/main/readme/termux-notes.md)
 > (build apps right on your phone).
+
 
 ## 📋 Table of contents
 

@@ -1,151 +1,171 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/background">
+    android:layout_height="match_parent">
 
     <FrameLayout
-        android:id="@+id/web_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-    <!-- Covers the WebView while connecting and when a load fails. -->
-    <ScrollView
-        android:id="@+id/connect_root"
+        android:id="@+id/root"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/background"
+        android:background="@color/background">
+
+        <FrameLayout
+            android:id="@+id/web_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Covers the WebView when a load fails. -->
+        <ScrollView
+            android:id="@+id/connect_root"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/background"
+            android:clickable="true"
+            android:fillViewport="true"
+            android:focusable="true"
+            android:visibility="gone">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.duckframework.bridge.MaxWidthLinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_margin="20dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="24dp"
+                    app:maxContentWidth="440dp">
+
+                    <TextView
+                        android:id="@+id/connect_title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/connect_message"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:accessibilityLiveRegion="polite"
+                        android:lineSpacingMultiplier="1.15"
+                        android:textColor="@color/text_secondary"
+                        android:textIsSelectable="true"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/connect_detail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:fontFamily="monospace"
+                        android:textColor="@color/text_muted"
+                        android:textIsSelectable="true"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+
+                    <LinearLayout
+                        android:id="@+id/connect_form"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:labelFor="@+id/server_input"
+                            android:text="@string/server_label"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+
+                        <EditText
+                            android:id="@+id/server_input"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:background="@drawable/bg_input"
+                            android:hint="@string/server_hint"
+                            android:imeOptions="actionGo"
+                            android:importantForAutofill="no"
+                            android:inputType="textUri"
+                            android:minHeight="52dp"
+                            android:paddingHorizontal="14dp"
+                            android:selectAllOnFocus="true"
+                            android:singleLine="true"
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_muted"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/input_error"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:accessibilityLiveRegion="polite"
+                            android:textColor="@color/error"
+                            android:textSize="13sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/primary_button"
+                        style="@style/Widget.Duck.Button.Primary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:visibility="gone" />
+
+                    <Button
+                        android:id="@+id/tests_button"
+                        style="@style/Widget.Duck.Button.Text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/open_tests"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/trust_notice"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/trust_notice"
+                        android:textColor="@color/text_muted"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+                </com.duckframework.bridge.MaxWidthLinearLayout>
+            </FrameLayout>
+        </ScrollView>
+    </FrameLayout>
+
+    <!-- Launch screen shown while the app loads, matching the window background. -->
+    <FrameLayout
+        android:id="@+id/splash_root"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/duck_splash"
         android:clickable="true"
-        android:fillViewport="true"
         android:focusable="true"
         android:visibility="gone">
 
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <com.duckframework.bridge.MaxWidthLinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_margin="20dp"
-                android:background="@drawable/bg_card"
-                android:orientation="vertical"
-                android:padding="24dp"
-                app:maxContentWidth="440dp">
-
-                <ProgressBar
-                    android:id="@+id/connect_progress"
-                    style="?android:attr/progressBarStyle"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_marginBottom="16dp"
-                    android:indeterminateTint="@color/accent" />
-
-                <TextView
-                    android:id="@+id/connect_title"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/text_primary"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/connect_message"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:accessibilityLiveRegion="polite"
-                    android:lineSpacingMultiplier="1.15"
-                    android:textColor="@color/text_secondary"
-                    android:textIsSelectable="true"
-                    android:textSize="15sp" />
-
-                <TextView
-                    android:id="@+id/connect_detail"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:fontFamily="monospace"
-                    android:textColor="@color/text_muted"
-                    android:textIsSelectable="true"
-                    android:textSize="12sp"
-                    android:visibility="gone" />
-
-                <LinearLayout
-                    android:id="@+id/connect_form"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
-                    android:orientation="vertical"
-                    android:visibility="gone">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:labelFor="@+id/server_input"
-                        android:text="@string/server_label"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-
-                    <EditText
-                        android:id="@+id/server_input"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:background="@drawable/bg_input"
-                        android:hint="@string/server_hint"
-                        android:imeOptions="actionGo"
-                        android:importantForAutofill="no"
-                        android:inputType="textUri"
-                        android:minHeight="52dp"
-                        android:paddingHorizontal="14dp"
-                        android:selectAllOnFocus="true"
-                        android:singleLine="true"
-                        android:textColor="@color/text_primary"
-                        android:textColorHint="@color/text_muted"
-                        android:textSize="16sp" />
-
-                    <TextView
-                        android:id="@+id/input_error"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:accessibilityLiveRegion="polite"
-                        android:textColor="@color/error"
-                        android:textSize="13sp"
-                        android:visibility="gone" />
-                </LinearLayout>
-
-                <Button
-                    android:id="@+id/primary_button"
-                    style="@style/Widget.Duck.Button.Primary"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
-                    android:visibility="gone" />
-
-                <Button
-                    android:id="@+id/tests_button"
-                    style="@style/Widget.Duck.Button.Text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/open_tests"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/trust_notice"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/trust_notice"
-                    android:textColor="@color/text_muted"
-                    android:textSize="12sp"
-                    android:visibility="gone" />
-            </com.duckframework.bridge.MaxWidthLinearLayout>
-        </FrameLayout>
-    </ScrollView>
+        <!-- Slim bar near the bottom edge, so it never covers the splash image. -->
+        <ProgressBar
+            android:id="@+id/splash_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="160dp"
+            android:layout_height="4dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="56dp"
+            android:contentDescription="@string/loading"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/duck_splash_progress" />
+    </FrameLayout>
 </FrameLayout>

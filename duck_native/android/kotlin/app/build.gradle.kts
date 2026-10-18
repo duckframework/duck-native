@@ -11,6 +11,7 @@ fun duck(name: String, default: String): String =
 val javaVersion = JavaVersion.toVersion(duck("javaVersion", "17").toInt())
 val generatedDir = duck("generatedDir", "")
 val keystore = duck("keystore", "")
+val testRelease = duck("testRelease", "false").toBoolean()
 
 // Keep Gradle output inside the project's build folder.
 duck("buildDir", "").takeIf { it.isNotEmpty() }?.let {
@@ -31,6 +32,8 @@ android {
 
         buildConfigField("boolean", "FULLSCREEN", duck("fullscreen", "false"))
         buildConfigField("boolean", "KEEP_SCREEN_ON", duck("keepScreenOn", "false"))
+        buildConfigField("String", "SERVER_URL", "\"${duck("serverUrl", "")}\"")
+        buildConfigField("boolean", "ALLOW_INSECURE_CERTS", duck("allowInsecureCerts", "false"))
     }
 
     signingConfigs {
@@ -47,7 +50,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfigs.findByName("release")?.let { signingConfig = it }
+
+            // Test releases use the debug key so no keystore is needed
+            val signing = if (testRelease) "debug" else "release"
+            signingConfigs.findByName(signing)?.let { signingConfig = it }
         }
     }
 

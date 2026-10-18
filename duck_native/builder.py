@@ -8,17 +8,23 @@ import subprocess
 import sys
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 from duck.logging import console
+from duck.settings import SETTINGS
 
 from duck_native.actions import ActionError, install_actions
+from duck_native.widgets import install_widgets
 from duck_native.hints import suggest
 from duck_native.config import ProjectConfig, escape_property
 from duck_native.storage import NATIVE_STORAGE
 
 
 TEMPLATE_DIR = NATIVE_STORAGE / "android" / "kotlin"
+ASSETS_DIR = Path("app") / "src" / "main" / "assets"
+
+# Page scripts bundled into the app, each shipped as name.js and name.min.js
+PAGE_SCRIPTS = ("duck-native", "duck-widgets")
 
 
 class BuildError(Exception):
@@ -56,8 +62,10 @@ def pick_task(config: ProjectConfig, apk: bool) -> str:
     if config.debug:
         return Tasks.DEBUG
 
-    # Return the release task
-    return Tasks.RELEASE_APK if apk else Tasks.RELEASE_BUNDLE
+    # Test releases must be installable, and bundles cannot be installed.
+    if apk or config.test_release:
+        return Tasks.RELEASE_APK
+    return Tasks.RELEASE_BUNDLE
 
 
 def find_aapt2() -> Optional[str]:
@@ -76,6 +84,35 @@ def find_aapt2() -> Optional[str]:
         return shutil.which("aapt2")
         
     return None
+
+
+def select_page_scripts(target: Path) -> None:
+    """
+    Keep the readable page scripts when LIVELY_DEBUG is on, otherwise the minified ones.
+
+    The app always loads `name.js`, so the minified file replaces it in release
+    mode and the unused variant never ships in the APK.
+
+    Args:
+        target: The copied Android project.
+    """
+    assets = target / ASSETS_DIR
+    debug = bool(SETTINGS["LIVELY_DEBUG"])
+    
+    # Log something
+    console.log(
+        f"Using {'unminified' if debug else 'minified'} page scripts (LIVELY_DEBUG={debug})",
+        level=console.DEBUG,
+    )
+    
+    for name in PAGE_SCRIPTS:
+        source = assets / f"{name}.js"
+        minified = assets / f"{name}.min.js"
+        
+        if debug:
+            minified.unlink(missing_ok=True)
+        else:
+            minified.replace(source)
 
 
 def prepare_project(config: ProjectConfig, generated_dir: Path) -> Path:
@@ -107,9 +144,13 @@ def prepare_project(config: ProjectConfig, generated_dir: Path) -> Path:
         ignore=shutil.ignore_patterns(".gradle", "build", "local.properties", "gradle.properties"),
     )
 
-    # Add the project's own Kotlin actions.
+    # Pick the readable or minified page scripts.
+    select_page_scripts(target)
+
+    # Add the project's own Kotlin actions and widgets.
     try:
         install_actions(config, target)
+        install_widgets(config, target)
     except ActionError as error:
         raise BuildError(str(error)) from error
 
@@ -137,13 +178,14 @@ def prepare_project(config: ProjectConfig, generated_dir: Path) -> Path:
     return target
 
 
-def gradle_command(project_dir: Path, task: str) -> list[str]:
+def gradle_command(project_dir: Path, task: str, extra_args: Sequence[str] = ()) -> list[str]:
     """
     Build the Gradle command line, preferring the project's wrapper.
 
     Args:
         project_dir: The copied Android project.
         task: The Gradle task to run.
+        extra_args: Flags passed to Gradle after the task, e.g. `--debug`.
 
     Returns:
         list[str]: Arguments ready for subprocess.
@@ -154,7 +196,7 @@ def gradle_command(project_dir: Path, task: str) -> list[str]:
     wrapper = project_dir / ("gradlew.bat" if os.name == "nt" else "gradlew")
     
     if wrapper.is_file():
-        return [str(wrapper), task]
+        return [str(wrapper), task, *extra_args]
 
     # Find gradle
     gradle = shutil.which("gradle")
@@ -162,7 +204,7 @@ def gradle_command(project_dir: Path, task: str) -> list[str]:
     if gradle is None:
         raise BuildError("Gradle was not found. Install Gradle 8.9 or newer and try again.")
     
-    return [gradle, task]
+    return [gradle, task, *extra_args]
 
 
 def find_artifact(config: ProjectConfig, task: str) -> Optional[Path]:
@@ -254,13 +296,14 @@ def run_gradle(command: list[str], project_dir: Path) -> tuple[int, str]:
     return process.wait(), "".join(lines)
 
 
-def build(config: ProjectConfig, apk: bool = False) -> int:
+def build(config: ProjectConfig, apk: bool = False, gradle_args: Sequence[str] = ()) -> int:
     """
     Copy the project, generate resources, run Gradle and collect the result.
 
     Args:
         config: The validated project config.
         apk: True to build a release APK instead of a bundle.
+        gradle_args: Extra flags forwarded to Gradle, e.g. `--debug`.
 
     Returns:
         int: Gradle's exit code, 0 on success.
@@ -291,7 +334,7 @@ def build(config: ProjectConfig, apk: bool = False) -> int:
 
     # Run Gradle in the copied project.
     task = pick_task(config, apk)
-    command = gradle_command(project_dir, task)
+    command = gradle_command(project_dir, task, gradle_args)
     
     # Log third step
     console.log_raw("")

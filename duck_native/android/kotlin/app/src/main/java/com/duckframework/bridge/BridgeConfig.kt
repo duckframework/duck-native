@@ -25,8 +25,9 @@ enum class ExternalLinkPolicy {
  * Runtime configuration for the bridge.
  *
  * Nothing here is hard-coded to a particular Duck server. Values come from
- * `assets/duck-bridge.json`, and debuggable builds also accept a `server_url`
- * intent extra so a server can be changed without rebuilding.
+ * `assets/duck-bridge.json`, falling back to the SERVER_URL set at build time.
+ * Debuggable builds also accept a `server_url` intent extra so a server can be
+ * changed without rebuilding.
  *
  * @property serverUrl Duck server to load, or null to let the user choose one.
  * @property trustedOrigins Extra origins allowed to use the native API.
@@ -62,8 +63,9 @@ data class BridgeConfig(
         fun load(context: Context, intent: Intent?, debuggable: Boolean): BridgeConfig {
             val json = readAsset(context)
 
-            // Server URL from the asset, optionally overridden while developing
+            // Server URL from the asset or the build, optionally overridden while developing
             var serverUrl = validUrl(json.stringOrNull(KEY_SERVER_URL))
+                ?: validUrl(BuildConfig.SERVER_URL.ifEmpty { null })
             if (debuggable) {
                 val debugUrl = validUrl(intent?.getStringExtra(EXTRA_SERVER_URL))
                 serverUrl = debugUrl ?: serverUrl

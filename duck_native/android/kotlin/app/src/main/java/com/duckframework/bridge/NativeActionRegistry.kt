@@ -9,6 +9,10 @@ import com.duckframework.bridge.actions.DeviceInfoAction
 import com.duckframework.bridge.actions.ShareAction
 import com.duckframework.bridge.actions.ToastAction
 import com.duckframework.bridge.actions.VibrateAction
+import com.duckframework.bridge.actions.WidgetLayoutAction
+import com.duckframework.bridge.actions.WidgetMountAction
+import com.duckframework.bridge.actions.WidgetUnmountAction
+import com.duckframework.bridge.actions.WidgetUpdateAction
 
 /**
  * The allowlist of native actions reachable from JavaScript.
@@ -49,8 +53,9 @@ class NativeActionRegistry {
          * Builds the registry used by the app.
          *
          * @param debuggable Whether to include debug-only actions.
+         * @param widgets Manager for the widgets that pages mount.
          */
-        fun createDefault(debuggable: Boolean): NativeActionRegistry {
+        fun createDefault(debuggable: Boolean, widgets: WidgetManager): NativeActionRegistry {
             val registry = NativeActionRegistry()
 
             // Capabilities available to every Duck application
@@ -60,6 +65,12 @@ class NativeActionRegistry {
             registry.register("clipboard.write", ClipboardWriteAction())
             registry.register("share", ShareAction())
             registry.register("device.info", DeviceInfoAction())
+
+            // Native widgets driven by Python components
+            registry.register("widget.mount", WidgetMountAction(widgets))
+            registry.register("widget.update", WidgetUpdateAction(widgets))
+            registry.register("widget.layout", WidgetLayoutAction(widgets))
+            registry.register("widget.unmount", WidgetUnmountAction(widgets))
 
             // Bridge metadata
             registry.register("bridge.info", BridgeInfoAction())

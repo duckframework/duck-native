@@ -24,6 +24,7 @@ class Limits:
         PLATFORMS: Platforms that can be built.
         ARCHITECTURES: Android ABIs that can be built.
         PLACEHOLDER_PACKAGE: Package prefix that stores reject.
+        RELEASE_URL_SCHEME: Scheme a release build's SERVER_URL must use.
     """
 
     MIN_SDK_FLOOR = 23
@@ -34,6 +35,7 @@ class Limits:
     PLATFORMS = ("android",)
     ARCHITECTURES = ("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
     PLACEHOLDER_PACKAGE = "com.example"
+    RELEASE_URL_SCHEME = "https://"
 
 
 class Names:
@@ -131,6 +133,9 @@ class ProjectConfig:
         platform: Target platform.
         architecture: Android ABI to build for.
         debug: True for development builds, False for release builds.
+        server_url: Duck server the app opens, required for release builds.
+        test_release: Sign a release build with the debug key for testing.
+        allow_insecure_certificates: Accept invalid HTTPS certificates from the server.
         build_dir: Folder for generated build files.
         java_version: Java language level for Java and Kotlin.
         signing_keystore: Keystore used to sign release builds, if any.
@@ -155,12 +160,15 @@ class ProjectConfig:
     platform: str
     architecture: str
     debug: bool
+    server_url: Optional[str]
+    test_release: bool
+    allow_insecure_certificates: bool
     build_dir: Path
     java_version: int
     signing_keystore: Optional[Path]
     signing_key_alias: Optional[str]
     project_dir: Path
-
+    
     @classmethod
     def from_values(
         cls,
@@ -263,6 +271,17 @@ class ProjectConfig:
         """
         errors: list[str] = []
 
+        # Release apps open straight into the server, so it must be set.
+        if self.server_url is None:
+            errors.append("Release builds need SERVER_URL, e.g. https://example.com.")
+        
+        elif not self.server_url.lower().startswith(Limits.RELEASE_URL_SCHEME):
+            errors.append("SERVER_URL must start with https:// in release builds.")
+
+        # Test releases are signed with the debug key and skip store checks.
+        if self.test_release:
+            return errors
+
         # Stores reject placeholder identities.
         if self.package_name.startswith(Limits.PLACEHOLDER_PACKAGE):
             errors.append("PACKAGE_NAME still uses the com.example placeholder.")
@@ -289,13 +308,26 @@ class ProjectConfig:
         Returns:
             list[str]: One message per warning.
         """
+        warnings: list[str] = []
+        
+        # Invalid certificates remove the protection HTTPS gives.
+        if self.allow_insecure_certificates:
+            warnings.append(
+                "ALLOW_INSECURE_CERTIFICATES is on. Use it only with servers you control; "
+                "Google Play may reject apps that do this."
+            )
+        
+        # Test releases are only meant for installing on your own devices.
+        if self.test_release and not self.debug:
+            warnings.append("Test release is signed with the debug key. Do not publish it.")
+
         # Google Play rejects new apps and updates targeting older API levels.
         if not self.debug and self.target_sdk < Limits.PLAY_TARGET_SDK:
-            return [
+            warnings.append(
                 f"TARGET_SDK {self.target_sdk} is below {Limits.PLAY_TARGET_SDK}, "
                 "which Google Play requires for new apps and updates."
-            ]
-        return []
+            )
+        return warnings
 
     def gradle_values(self) -> dict[str, str]:
         """
@@ -324,6 +356,9 @@ class ProjectConfig:
             "duck.platform": self.platform,
             "duck.abi": self.architecture,
             "duck.debug": str(self.debug).lower(),
+            "duck.serverUrl": self.server_url or "",
+            "duck.testRelease": str(self.test_release).lower(),
+            "duck.allowInsecureCerts": str(self.allow_insecure_certificates).lower(),
             "duck.buildDir": path_text(self.build_dir),
             "duck.javaVersion": self.java_version,
             "duck.keystore": path_text(self.signing_keystore),
@@ -516,14 +551,20 @@ def read_settings(module: ModuleType) -> tuple[dict[str, Any], list[str]]:
     return values, errors
 
 
-def load_config(project_dir: Path, ignore_errors: bool = False) -> ProjectConfig:
+def load_config(
+    project_dir: Path,
+    ignore_errors: bool = False,
+    overrides: Optional[dict[str, Any]] = None,
+) -> ProjectConfig:
     """
     Load, normalize and validate a project's native/config.py.
 
     Args:
         project_dir: Folder that contains the project's native/ directory.
         ignore_errors: Ignore config errors e.g., validation isssues.
-        
+        overrides: Settings, keyed by upper-case name, that replace config.py's
+            values, e.g. from command line flags.
+
     Returns:
         ProjectConfig: The validated settings.
         
@@ -535,6 +576,7 @@ def load_config(project_dir: Path, ignore_errors: bool = False) -> ProjectConfig
 
     # Run the user's file and read its settings.
     values, errors = read_settings(load_module(path))
+    values.update(overrides or {})
     
     if errors and not ignore_errors:
         raise ConfigError(path, errors)
@@ -570,6 +612,9 @@ SCHEMA: dict[str, Setting] = {
     "PLATFORM": Setting("android", (str,), "a string"),
     "ARCHITECTURE": Setting("arm64-v8a", (str,), "a string"),
     "DEBUG": Setting(True, (bool,), "True or False"),
+    "SERVER_URL": Setting(None, (str, type(None)), "a URL or None"),
+    "TEST_RELEASE": Setting(False, (bool,), "True or False"),
+    "ALLOW_INSECURE_CERTIFICATES": Setting(False, (bool,), "True or False"),
     "BUILD_DIR": Setting("build", (str,), "a path"),
     "JAVA_VERSION": Setting(17, (int,), "an integer"),
     "SIGNING_KEYSTORE": Setting(None, (str, type(None)), "a path or None"),

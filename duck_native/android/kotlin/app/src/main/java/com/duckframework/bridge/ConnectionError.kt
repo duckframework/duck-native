@@ -25,7 +25,7 @@ data class LoadFailure(val code: Int, val description: String?) {
  *
  * @property title Short headline.
  * @property message Plain explanation and what to try.
- * @property detail Small technical line for support, or null.
+ * @property detail Small technical line, shown to developers only, or null.
  */
 data class ConnectionError(val title: String, val message: String, val detail: String?)
 
@@ -41,12 +41,14 @@ object ConnectionErrors {
      * @param failure What went wrong.
      * @param url The address that failed.
      * @param offline Whether the device has no validated internet access.
+     * @param developer True to add technical hints, for debuggable builds only.
      */
     fun describe(
         context: Context,
         failure: LoadFailure,
         url: String?,
         offline: Boolean,
+        developer: Boolean,
     ): ConnectionError {
         // A local server still works without internet, so offline only matters elsewhere
         val local = ServerUrl.isLocal(url)
@@ -71,17 +73,17 @@ object ConnectionErrors {
             }
         }
 
-        // Servers on a computer need their port forwarded to the phone
+        // Developers get a hint: servers on a computer need their port forwarded
         var message = context.getString(messageRes)
         val port = ServerUrl.adbPort(url)
-        if (failure.code == WebViewClient.ERROR_CONNECT && port != null) {
+        if (developer && failure.code == WebViewClient.ERROR_CONNECT && port != null) {
             message += "\n\n" + context.getString(R.string.error_connect_local_hint, port)
         }
 
         return ConnectionError(
             title = context.getString(titleRes),
             message = message,
-            detail = failure.description?.takeIf { it.isNotBlank() },
+            detail = failure.description?.takeIf { developer && it.isNotBlank() },
         )
     }
 }

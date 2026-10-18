@@ -8,17 +8,20 @@ import android.widget.EditText
 import android.widget.TextView
 
 /**
- * The connecting and error screen that covers the WebView.
+ * The launch and error screens that cover the WebView.
  *
- * It has two looks: a progress state while a page loads, and an error state with
- * a readable message plus either an address field or a single retry button.
+ * While a page loads, the splash screen is shown with a slim progress bar. When
+ * loading fails, an error card shows a readable message plus either an address
+ * field or a single retry button.
  *
- * @param root The overlay view from `activity_main.xml`.
+ * @param root The error overlay view from `activity_main.xml`.
+ * @param splash The splash overlay view from `activity_main.xml`.
  * @param listener Receives the user's actions.
  * @param showTests Whether to offer the built-in bridge test page.
  */
 class ConnectView(
     private val root: View,
+    private val splash: View,
     private val listener: Listener,
     private val showTests: Boolean,
 ) {
@@ -37,7 +40,6 @@ class ConnectView(
         fun onOpenTests()
     }
 
-    private val progress: View = root.findViewById(R.id.connect_progress)
     private val title: TextView = root.findViewById(R.id.connect_title)
     private val message: TextView = root.findViewById(R.id.connect_message)
     private val detail: TextView = root.findViewById(R.id.connect_detail)
@@ -66,22 +68,12 @@ class ConnectView(
     }
 
     /**
-     * Shows progress while a page loads.
-     *
-     * @param titleText Headline.
-     * @param messageText What is happening.
+     * Shows the splash screen while a page loads.
      */
-    fun showConnecting(titleText: String, messageText: String) {
+    fun showConnecting() {
         hideKeyboard()
-        title.text = titleText
-        message.text = messageText
-        detail.visibility = View.GONE
-        progress.visibility = View.VISIBLE
-        form.visibility = View.GONE
-        primary.visibility = View.GONE
-        tests.visibility = View.GONE
-        notice.visibility = View.GONE
-        present()
+        root.visibility = View.GONE
+        present(splash)
     }
 
     /**
@@ -98,7 +90,7 @@ class ConnectView(
         message.text = error.message
         detail.text = error.detail
         detail.visibility = if (error.detail == null) View.GONE else View.VISIBLE
-        progress.visibility = View.GONE
+        splash.visibility = View.GONE
 
         // The address field only exists when the user may change servers
         form.visibility = if (canEditServer) View.VISIBLE else View.GONE
@@ -109,7 +101,7 @@ class ConnectView(
         primary.visibility = View.VISIBLE
         tests.visibility = if (canEditServer && showTests) View.VISIBLE else View.GONE
         notice.visibility = if (canEditServer) View.VISIBLE else View.GONE
-        present()
+        present(root)
     }
 
     /**
@@ -123,15 +115,11 @@ class ConnectView(
     }
 
     /**
-     * Fades the screen away to reveal the page.
+     * Fades the screens away to reveal the page.
      */
     fun hide() {
-        root.animate().cancel()
-        root.animate()
-            .alpha(0f)
-            .setDuration(FADE_MS)
-            .withEndAction { root.visibility = View.GONE }
-            .start()
+        fadeOut(splash)
+        fadeOut(root)
     }
 
     private fun submit() {
@@ -143,10 +131,20 @@ class ConnectView(
         }
     }
 
-    private fun present() {
-        root.animate().cancel()
-        root.alpha = 1f
-        root.visibility = View.VISIBLE
+    private fun present(view: View) {
+        view.animate().cancel()
+        view.alpha = 1f
+        view.visibility = View.VISIBLE
+    }
+
+    private fun fadeOut(view: View) {
+        if (view.visibility != View.VISIBLE) return
+        view.animate().cancel()
+        view.animate()
+            .alpha(0f)
+            .setDuration(FADE_MS)
+            .withEndAction { view.visibility = View.GONE }
+            .start()
     }
 
     private fun hideKeyboard() {

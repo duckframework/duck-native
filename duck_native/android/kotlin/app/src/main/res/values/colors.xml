@@ -10,4 +10,5 @@
     <color name="accent">#F5A623</color>
     <color name="on_accent">#1A1200</color>
     <color name="error">#FF7B7B</color>
+    <color name="duck_splash_progress">#CCFFFFFF</color>
 </resources>

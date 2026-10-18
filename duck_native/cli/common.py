@@ -4,6 +4,7 @@ Options and helpers shared by every command.
 import click
 
 from pathlib import Path
+from typing import Any, Optional
 
 from duck.logging import console
 
@@ -17,14 +18,19 @@ project_argument = click.argument(
 )
 
 
-def load_project(project: Path, ignore_errors: bool = False) -> ProjectConfig:
+def load_project(
+    project: Path,
+    ignore_errors: bool = False,
+    overrides: Optional[dict[str, Any]] = None,
+) -> ProjectConfig:
     """
     Load a project's config, reporting problems the way click expects.
 
     Args:
         project: Folder that contains the project's native/ directory.
         ignore_errors: Whether to ignore errors e.g., validation issues.
-        
+        overrides: Settings, keyed by upper-case name, that replace config.py's.
+
     Returns:
         ProjectConfig: The validated settings.
 
@@ -32,7 +38,7 @@ def load_project(project: Path, ignore_errors: bool = False) -> ProjectConfig:
         click.ClickException: If the config is missing or invalid.
     """
     try:
-        config = load_config(project, ignore_errors=ignore_errors)
+        config = load_config(project, ignore_errors=ignore_errors, overrides=overrides)
         
     except ConfigError as error:
         raise click.ClickException(str(error)) from error

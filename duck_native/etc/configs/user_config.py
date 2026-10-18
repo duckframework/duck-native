@@ -104,6 +104,25 @@ ARCHITECTURE = "arm64-v8a"
 DEBUG = True
 
 
+# Address of your Duck server, e.g. "https://example.com".
+#
+# Release builds open straight into this server and require it to use https.
+# Override it per build with: duck native build --server-url https://example.com
+# In debug builds, leave it as None to type a server address on the error screen.
+SERVER_URL = None
+
+
+# Signs a release build with the debug key so it installs without a keystore.
+#
+# Meant for testing only. Prefer the flag: duck native build --test-release
+TEST_RELEASE = False
+
+
+# Accepts invalid HTTPS certificates (self-signed, expired, wrong host) from
+# your own server. Never leave this on for a public app.
+ALLOW_INSECURE_CERTIFICATES = False
+
+
 # Directory where Duck Native places generated build files and artifacts.
 BUILD_DIR = "build"
 
