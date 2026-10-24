@@ -447,7 +447,7 @@ class DOMPatcher {
    */
   registerElement(uid, el) {
     if (this.uidMap.has(uid)) {
-      throw new ElementRegistrationError("Element with the provided UID already exists. Cleanup and unregister this element first.");
+      throw new ElementRegistrationError(`Element with the provided UID ${uid} already registered. Cleanup and unregister this element first.`);
     }
     this.uidMap.set(uid, el);
     this.ensureElementCacheDataInitialized(el);
@@ -2704,23 +2704,32 @@ if (!window.LIVELY_APPLICATION) {
   // Only one app per client.
   window.LIVELY_SCRIPT_COMPATIBLE = true;
 
+  // Initialize Lively only once, even if this script is loaded multiple times.
+  let livelyInitialized = false;
+
   function initLively() {
-    if (!window.LIVELY_APPLICATION) {
-      // Avoid multiple apps here also.
-      // Override window.open
-      overrideWindowOpen();
-      window.LIVELY_APPLICATION = new LivelyApp();
-      window.LIVELY_APPLICATION.init();
+    console.log("[Lively] Initializing Lively application...");
+    if (livelyInitialized || window.LIVELY_APPLICATION) {
+      return;
     }
+
+    // Initialize the Lively application.
+    livelyInitialized = true;
+
+    // Override window.open to use duckNavigate for same-tab navigation.
+    overrideWindowOpen();
+
+    // Initialize the Lively application.
+    window.LIVELY_APPLICATION = new LivelyApp();
+    window.LIVELY_APPLICATION.init();
   }
-  
-  // Bind event to DOMContentLoaded event.
+
+  // Initialize Lively when the DOM is fully loaded.
   window.addEventListener("DOMContentLoaded", initLively);
 
-  // Fires on every page show, including bfcache restores
+  // Reinitialize Lively when the page is restored from the bfcache (back/forward cache).
   window.addEventListener("pageshow", (event) => {
     if (event.persisted) {
-      // Page was restored from bfcache — re-run init logic
       initLively();
     }
   });
